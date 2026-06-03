@@ -222,3 +222,9 @@ check "deprecations" {
     error_message = "The 'azure_subscription_id' variable is deprecated and should not be used as it will be removed in a future release. Configure the subscription ID in the azurerm provider configuration instead."
   }
 }
+
+variable "azure_enable_public_ip" {
+  description = "Enable public IPs on CCES nodes for bootstrap access."
+  type        = bool
+  default     = false
+}
