@@ -5,7 +5,7 @@
 locals {
   enableImmutability = var.enableImmutability == true ? 1 : 0
   cluster_node_names = formatlist("${var.cluster_name}-%02s", range(1, var.number_of_nodes + 1))
-  cluster_node_ips   = [for i in azurerm_linux_virtual_machine.cces_node : i.private_ip_address]
+  cluster_node_ips   = var.azure_enable_public_ip ? [for i in azurerm_linux_virtual_machine.cces_node : i.public_ip_address] : [for i in azurerm_linux_virtual_machine.cces_node : i.private_ip_address]
 }
 
 ##################
@@ -163,10 +163,20 @@ resource "azurerm_network_interface" "cces_nic" {
     name                          = each.value
     subnet_id                     = data.azurerm_subnet.cces_subnet.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = var.azure_enable_public_ip ? azurerm_public_ip.cces_public_ip[each.value].id : null
   }
 
   tags = var.azure_tags
+}
 
+resource "azurerm_public_ip" "cces_public_ip" {
+  for_each            = var.azure_enable_public_ip ? toset(local.cluster_node_names) : []
+  name                = "${each.value}-pip"
+  resource_group_name = azurerm_resource_group.cc_rg.name
+  location            = azurerm_resource_group.cc_rg.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = var.azure_tags
 }
 
 resource "azurerm_management_lock" "cces_nic" {
